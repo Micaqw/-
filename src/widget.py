@@ -1,19 +1,35 @@
-from src.masks import get_mask_account, get_mask_card_number
+from typing import Optional, Tuple
+import re
+from datetime import datetime
 
 
-def mask_account_card(new_line: str) -> str:
-    """Функция, которая умеет обрабатывать информацию как о картах, так и о счетах"""
-    card_elements: list[str] = new_line.split()
-    card_account_number: int = int(card_elements[-1])
-    first_element = card_elements[0]
-    if first_element == 'Счет':
-        return f'{first_element} {get_mask_account(card_account_number)}'
-    return ' '.join({*card_elements[0:-1], get_mask_card_number(card_account_number)})
+def mask_account_card(card_info: str) -> str:
+    """основная функция с подфункциями"""
+
+    def mask_card_number(number: str) -> str:
+        """функция маскировки карты"""
+        return number[:4] + " " + number[4:6] + "** **** " + number[-4:]
+
+    def mask_account_number(number: str) -> str:
+        """тоже маскиоровка карты"""
+        return "**" + number[-4:]
+
+    card_pattern = re.compile(r"(Visa|Maestro) (\d{16})")
+    account_pattern = re.compile(r"(Счет) (\d{20})")
+
+    if card_pattern.match(card_info):
+        card_type, card_number = card_pattern.match(card_info).groups()
+        return f"{card_type} {mask_card_number(card_number)}"
+    elif account_pattern.match(card_info):
+        account_type, account_number = account_pattern.match(card_info).groups()
+        return f"{account_type} {mask_account_number(account_number)}"
+    else:
+        return card_info
 
 
-def get_date(user_date_and_time: str) -> str:
-    """Функция, которая умеет обрабатывать дату и возвращает в указанном формате"""
-    user_date = user_date_and_time.split('T')
-    year_month_day: list[str] = user_date[0].split('-')
-    year, month, day = year_month_day
-    return '.'.join([day, month, year])
+def get_date(date_str: str) -> str:
+    """функция для даты"""
+    from datetime import datetime
+
+    date_obj = datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%S.%f")
+    return date_obj.strftime("%d.%m.%Y")
